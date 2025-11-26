@@ -1,0 +1,115 @@
+import datetime
+
+class Aircraft:
+    def __init__(self, company, flight_number, aircraft_type, tps, position, destination, landing_time, departure_time=None):
+        self.company = company
+        self.flight_number = flight_number
+        self.aircraft_type = aircraft_type
+        self.tps = tps
+        self.position = position
+        self.destination = destination
+        self.landing_time = landing_time  # datetime object
+        self.departure_time = departure_time  # datetime object
+        self.status = "Scheduled"  # Scheduled, Landed, Departed
+
+    def land(self):
+        self.status = "Landed"
+
+    def depart(self):
+        self.status = "Departed"
+
+class Airport:
+    def __init__(self):
+        self.aircrafts = []
+
+    def add_aircraft(self, aircraft):
+        self.aircrafts.append(aircraft)
+
+    def get_patio_status(self):
+        status = []
+        for ac in self.aircrafts:
+            status.append({
+                "Flight": ac.flight_number,
+                "Type": ac.aircraft_type,
+                "TPS": ac.tps,
+                "Position": ac.position,
+                "Destination": ac.destination,
+                "Landing": ac.landing_time.strftime("%Y-%m-%d %H:%M"),
+                "Departure": ac.departure_time.strftime("%Y-%m-%d %H:%M") if ac.departure_time else "TBD",
+                "Status": ac.status
+            })
+        return status
+
+    def check_departs(self, current_time):
+        alerts = []
+        for ac in self.aircrafts:
+            if ac.status == "Landed" and ac.departure_time and ac.departure_time <= current_time:
+                ac.depart()
+                alerts.append(f"Flight {ac.flight_number} to {ac.destination} has departed from TPS{ac.tps} position {ac.position}.")
+        return alerts
+
+def parse_datetime(dt_str):
+    # Ex: "2025-11-26 01:20"
+    return datetime.datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
+
+def main():
+    airport = Airport()
+
+    while True:
+        print("\n--- Airport Management ---")
+        print("1. Add aircraft")
+        print("2. Land aircraft")
+        print("3. Show patio status")
+        print("4. Check departures")
+        print("5. Exit")
+        choice = input("Choice: ")
+
+        if choice == "1":
+            company = input("Company: ")
+            flight_number = input("Flight Number: ")
+            aircraft_type = input("Aircraft Type: ")
+            tps = input("TPS: ")
+            position = input("Position (e.g., 101L): ")
+            destination = input("Destination: ")
+            landing_time = parse_datetime(input("Landing Time (YYYY-MM-DD HH:MM): "))
+            departure_time_str = input("Departure Time (YYYY-MM-DD HH:MM or leave empty): ")
+            departure_time = parse_datetime(departure_time_str) if departure_time_str else None
+            ac = Aircraft(company, flight_number, aircraft_type, tps, position, destination, landing_time, departure_time)
+            airport.add_aircraft(ac)
+            print(f"Aircraft {flight_number} scheduled successfully.")
+
+        elif choice == "2":
+            flight_number = input("Flight Number to land: ")
+            current_time = datetime.datetime.now()
+            found = False
+            for ac in airport.aircrafts:
+                if ac.flight_number == flight_number:
+                    ac.land()
+                    print(f"Flight {flight_number} has landed at TPS{ac.tps} position {ac.position}.")
+                    found = True
+                    break
+            if not found:
+                print("Flight not found.")
+
+        elif choice == "3":
+            status = airport.get_patio_status()
+            for ac in status:
+                print(ac)
+
+        elif choice == "4":
+            current_time = datetime.datetime.now()
+            alerts = airport.check_departs(current_time)
+            if alerts:
+                for alert in alerts:
+                    print(alert)
+            else:
+                print("No departures at this time.")
+
+        elif choice == "5":
+            print("Exiting...")
+            break
+        else:
+            print("Invalid choice.")
+
+if __name__ == "__main__":
+    main()
