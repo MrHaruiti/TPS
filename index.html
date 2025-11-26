@@ -1,99 +1,67 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Painel Aeroporto — Mapa de Posições (Tabela)</title>
-<link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Painel Aeroporto — Mapa de Posições (Tabela)</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<header>
-  <h1>Painel Aeroporto — Mapa em Tabela</h1>
-  <div class="clock card" id="clock">--:--:--</div>
-</header>
+  <header>
+    <h1>Painel Aeroporto — Mapa em Tabela</h1>
+    <div class="clock card" id="clock">--:--:--</div>
+  </header>
 
-<div class="controls">
-  <div class="card">
-    <div style="display:flex;gap:8px;align-items:center">
-      <label class="small">Arquivo Excel (timetable):</label>
-      <input id="fileInput" type="file" accept=".xls,.xlsx" />
+  <div class="controls">
+    <div class="card">
+      <div style="display:flex;gap:8px;align-items:center">
+        <label class="small">Arquivo Excel (timetable):</label>
+        <input id="fileInput" type="file" accept=".xls,.xlsx" />
+      </div>
+      <div style="margin-top:8px;">
+        <label class="small">Ou URL do .xlsx (CORS permitido):</label>
+        <input id="urlInput" placeholder="https://.../timetable.xlsx" style="width:360px" />
+        <button id="loadUrlBtn" class="btn">Carregar</button>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+        <label class="small">Auto-refresh:</label>
+        <select id="refreshInterval">
+          <option value="1">1s</option>
+          <option value="5">5s</option>
+          <option value="30">30s</option>
+          <option value="60">60s</option>
+        </select>
+      </div>
     </div>
-    <div style="margin-top:8px;">
-      <label class="small">Ou URL do .xlsx (CORS permitido):</label>
-      <input id="urlInput" placeholder="https://.../timetable.xlsx" style="width:360px" />
-      <button id="loadUrlBtn" class="btn">Carregar</button>
-    </div>
-    <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
-      <label class="small">Auto-refresh:</label>
-      <select id="refreshInterval">
-        <option value="1">1s</option>
-        <option value="5">5s</option>
-        <option value="30">30s</option>
-        <option value="60">60s</option>
-      </select>
-    </div>
-  </div>
 
-  <div class="card">
-    <label class="small">Configuração TPS (padrão: TPS1 101-150, TPS2 201-250)</label>
-    <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
-      <textarea id="tpsConfig" style="width:520px;height:70px;font-family:monospace">TPS1,101,150 TPS2,201,250 TPS3,301,350</textarea>
-    </div>
-    <div style="margin-top:8px">
-      <button id="applyTps" class="btn">Aplicar configuração TPS</button>
-    </div>
-    <div class="small" style="margin-top:8px">Formato por linha: NOME,INICIO,FIM — cada posição terá 3 sub-posições</div>
-  </div>
-</div>
-
-<div class="layout">
-  <div class="left card">
-    <h3>Fila / Painel</h3>
-    <div style="margin-top:8px">
-      <strong>Voos chegando (em pop-up e contadores)</strong>
-      <div id="incoming" class="incoming-list" style="margin-top:8px"></div>
-    </div>
-    <div style="margin-top:12px">
-      <strong>Voos decolagens (contadores)</strong>
-      <div id="departures" class="departure-list" style="margin-top:8px"></div>
-    </div>
-    <div style="margin-top:12px">
-      <button id="openManualAdd" class="btn">Adicionar voo manual (charter)</button>
-    </div>
-  </div>
-
-  <div class="center card">
-    <h3>MAPA (Tabela) — clique numa sub-posição para selecionar</h3>
-    <div id="mapArea"></div>
-  </div>
-
-  <div class="right card">
-    <h3>Detalhes / Ações</h3>
-    <div id="selectedDetails">Nenhuma posição selecionada</div>
-    <div style="margin-top:12px">
-      <strong>Filtrar Timetable</strong>
+    <div class="card">
+      <label class="small">Configuração TPS</label>
+      <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
+        <textarea id="tpsConfig" style="width:520px;height:70px;font-family:monospace">TPS1,101,150 TPS2,201,250 TPS3,301,350</textarea>
+      </div>
       <div style="margin-top:8px">
-        <input id="filterAirline" placeholder="Airline (opcional)" />
-        <input id="filterAircraft" placeholder="Aircraft (ex: A388)" />
-        <button id="applyFilter">Aplicar</button>
+        <button id="applyTps" class="btn">Aplicar configuração TPS</button>
+      </div>
+      <div class="small" style="margin-top:8px">
+        Formato por linha: NOME,INICIO,FIM — cada posição terá 3 sub-posições
       </div>
     </div>
   </div>
-</div>
 
-<!-- Modais -->
-<div class="modal" id="modal">
-  <div class="box" id="arrivalModalBox"></div>
-</div>
-<div class="modal" id="manualModal">
-  <div class="box" id="manualModalBox"></div>
-</div>
+  <div class="layout">
+    <div class="left card" id="leftPanel"></div>
+    <div class="center card" id="mapArea"></div>
+    <div class="right card" id="rightPanel"></div>
+  </div>
 
-<footer>
-  Arquivo Excel carregado: <span id="fileName">nenhum</span>. O sistema verifica o timetable e gera pop-ups no horário exato.
-</footer>
+  <div class="modal" id="modal"></div>
+  <div class="modal" id="manualModal"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="script.js"></script>
+  <footer>
+    Arquivo Excel carregado: <span id="fileName">nenhum</span>.
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="main.js"></script>
 </body>
 </html>
