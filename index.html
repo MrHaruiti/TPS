@@ -1,33 +1,74 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão de TPS</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Painel Aeroporto — Mapa de Posições (Tabela)</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <h1>Gestão de TPS</h1>
-        <div id="clock">--:--:--</div>
-    </header>
+<header>
+  <h1>Painel Aeroporto — Mapa em Tabela</h1>
+  <div class="clock card" id="clock">--:--:--</div>
+</header>
 
-    <section id="config">
-        <h2>Configuração de TPS</h2>
-        <textarea id="tpsConfig" rows="5" placeholder="Ex: TPS1,1,10&#10;TPS2,11,20"></textarea>
-        <button id="applyTps">Aplicar</button>
-    </section>
+<div class="controls">
+  <div class="card">
+    <label class="small">Arquivo Excel (timetable):</label>
+    <input id="fileInput" type="file" accept=".xls,.xlsx" />
+    <label class="small">Ou URL do .xlsx (CORS permitido):</label>
+    <input id="urlInput" placeholder="https://.../timetable.xlsx" style="width:360px" />
+    <button id="loadUrlBtn" class="btn">Carregar</button>
+    <label class="small">Auto-refresh:</label>
+    <select id="refreshInterval">
+      <option value="1">1s</option>
+      <option value="5">5s</option>
+      <option value="30">30s</option>
+      <option value="60">60s</option>
+    </select>
+  </div>
 
-    <section id="map">
-        <h2>Mapa de Posições</h2>
-        <div id="mapArea"></div>
-    </section>
+  <div class="card">
+    <label class="small">Configuração TPS (padrão: TPS1 101-150, TPS2 201-250)</label>
+    <textarea id="tpsConfig" style="width:520px;height:70px;font-family:monospace">
+TPS1,101,150
+TPS2,201,250
+TPS3,301,350
+    </textarea>
+    <button id="applyTps" class="btn">Aplicar configuração TPS</button>
+  </div>
+</div>
 
-    <section id="details">
-        <h2>Detalhes da Posição Selecionada</h2>
-        <div id="selectedDetails">Nenhuma posição selecionada</div>
-    </section>
+<div class="layout">
+  <div class="left card">
+    <h3>Fila / Painel</h3>
+    <div><strong>Voos chegando</strong><div id="incoming" class="incoming-list"></div></div>
+    <div><strong>Voos decolagens</strong><div id="departures" class="departure-list"></div></div>
+    <button id="openManualAdd" class="btn">Adicionar voo manual</button>
+  </div>
 
-    <script src="script.js"></script>
+  <div class="center card">
+    <h3>MAPA (Tabela) — clique numa sub-posição</h3>
+    <div id="mapArea"></div>
+  </div>
+
+  <div class="right card">
+    <h3>Detalhes / Ações</h3>
+    <div id="selectedDetails">Nenhuma posição selecionada</div>
+    <div>
+      <strong>Filtrar Timetable</strong>
+      <input id="filterAirline" placeholder="Airline (opcional)" />
+      <input id="filterAircraft" placeholder="Aircraft (ex: A388)" />
+      <button id="applyFilter">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Arquivo Excel carregado: <span id="fileName">nenhum</span>.
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
