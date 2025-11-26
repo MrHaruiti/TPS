@@ -2,175 +2,113 @@
   font-family: Inter, system-ui, Arial, Helvetica, sans-serif;
   color: #fff;
 }
-
 body {
   margin: 0;
   padding: 18px;
-  background: #000000; /* fundo preto */
-  color: #fff;
+  background: #000;
 }
-
 header {
   display: flex;
   gap: 16px;
   align-items: center;
 }
-
 h1 {
   margin: 0;
   font-size: 20px;
 }
-
 .controls {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
   margin-top: 10px;
 }
-
 .card {
-  background: #1c1c1c; /* fundo escuro/diamante */
+  background: #111;
   border-radius: 8px;
   padding: 12px;
-  box-shadow: 0 1px 4px rgba(255, 255, 255, 0.1); /* leve brilho */
-  color: #fff;
+  box-shadow: 0 1px 4px rgba(255,255,255,0.1);
 }
-
-input,
-select,
-button {
+input, select, button, textarea {
   font-size: 14px;
   padding: 6px;
   border-radius: 6px;
-  border: 1px solid #555;
-  background: #2a2a2a;
+  border: 1px solid #666;
+  background: #222;
   color: #fff;
 }
-
 .layout {
   display: grid;
   grid-template-columns: 300px 1fr 340px;
   gap: 12px;
   margin-top: 14px;
 }
-
-.left,
-.center,
-.right {
+.left, .center, .right {
   min-height: 400px;
 }
-
 .clock {
   font-weight: 700;
   font-size: 18px;
 }
-
 /* map table */
 .map {
   width: 100%;
   border-collapse: collapse;
 }
-
 .tps-header {
-  background: #111111;
+  background: #222;
   padding: 6px;
   border-radius: 6px;
   margin-bottom: 6px;
-  color: #fff;
 }
-
 .position-row {
-  background: #1c1c1c;
+  background: #111;
   margin-bottom: 4px;
   display: grid;
   grid-template-columns: 120px 1fr 1fr 160px;
   align-items: center;
   padding: 8px;
   border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 1px 2px rgba(255,255,255,0.05);
 }
-
 .subcells {
   display: flex;
   gap: 6px;
 }
-
 .subcell {
   flex: 1;
   padding: 6px;
   border-radius: 6px;
-  border: 1px dashed #aaa;
-  background: linear-gradient(145deg, #2a2a2a, #1f1f1f);
-  box-shadow: inset 0 2px 5px rgba(255, 255, 255, 0.05);
+  border: 1px dashed #555;
   text-align: center;
-  color: #fff;
+  background: #1a1a1a; /* estilo "adiamantado" escuro */
 }
-
-.subcell.occupied {
-  background: #a8a8a8; /* ocupada: destaque diamante */
-  border: 1px solid #fff;
-  color: #000;
+.occupied {
+  background: #440000;
+  border: 1px solid #880000;
 }
-
-.incoming-list,
-.departure-list {
+.incoming-list, .departure-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-
 .flight-card {
-  background: #1c1c1c;
+  background: #222;
   padding: 8px;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(255, 255, 255, 0.05);
-  color: #fff;
+  box-shadow: 0 1px 3px rgba(255,255,255,0.05);
 }
-
 .btn {
   cursor: pointer;
-  background: #333;
-  color: #fff;
-  border: 1px solid #555;
 }
-
-.modal {
-  position: fixed;
-  left: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.7);
-}
-
-.modal .box {
-  width: 420px;
-  background: #1c1c1c;
-  padding: 16px;
-  border-radius: 8px;
-  color: #fff;
-}
-
-label {
-  display: block;
-  font-size: 13px;
-  margin-top: 8px;
-}
-
 .small {
   font-size: 12px;
-  color: #ccc;
+  color: #aaa;
 }
-
 footer {
   margin-top: 18px;
   font-size: 12px;
-  color: #999;
+  color: #aaa;
 }
-
 .flex {
   display: flex;
   gap: 8px;
