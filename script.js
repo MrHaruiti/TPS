@@ -1,72 +1,96 @@
-let timetable = [];
-let tpsConfig = [];
-let positions = {};
-let refreshIntervalSec = 1;
-let lastTriggered = new Set();
+// === script.js ===
 
-function pad(n){ return n<10?'0'+n:''+n; }
-function nowStr(){ const d=new Date(); return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
-function updateClock(){ document.getElementById('clock').textContent = nowStr(); }
-setInterval(updateClock,1000);
+// Função para atualizar o relógio
+function updateClock() {
+    const clock = document.getElementById('clock');
+    if (!clock) return;
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    const s = String(now.getSeconds()).padStart(2, '0');
+    clock.innerText = `${h}:${m}:${s}`;
+}
+setInterval(updateClock, 1000);
 updateClock();
 
-function buildPositions(){
-  positions = {};
-  for(const t of tpsConfig){
-    for(let p=t.start;p<=t.end;p++){
-      positions[p]={tps:t.name, subs:[{occupied:false,flight:null},{occupied:false,flight:null},{occupied:false,flight:null}]};
+// Função para ler arquivo Excel
+async function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const data = await file.arrayBuffer();
+    const workbook = XLSX.read(data);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+    populateMap(jsonData);
+}
+
+// Popula o mapa com os dados do Excel
+function populateMap(data) {
+    // Supondo que a primeira linha seja cabeçalho
+    const positions = data.slice(1); // Ignora o cabeçalho
+
+    positions.forEach(row => {
+        const posicao = String(row[0]).trim(); // Ex: 102, 102A
+        const aircraft = row[1] ? row[1].trim() : '';
+        const type = row[2] ? row[2].trim() : ''; // Narrow ou Wide
+
+        if (!posicao) return;
+
+        if (posicao.length === 3) {
+            // Widebody ocupa 3 subposições automaticamente
+            ['A', 'B', 'C'].forEach(suffix => {
+                const id = `${posicao}${suffix}`;
+                const cell = document.getElementById(id);
+                if (cell) cell.innerText = aircraft;
+            });
+        } else {
+            // Subposição específica
+            const cell = document.getElementById(posicao);
+            if (cell) cell.innerText = aircraft;
+        }
+    });
+}
+
+// Conecta o input de arquivo
+const fileInput = document.getElementById('excelFileInput');
+if (fileInput) {
+    fileInput.addEventListener('change', handleFileUpload);
+}
+
+// Renderização inicial do mapa, caso precise
+function renderMap() {
+    const mapContainer = document.getElementById('mapContainer');
+    if (!mapContainer) return;
+
+    // Exemplo de como gerar as células de posição
+    const rows = 5; // ajuste conforme seu mapa
+    const cols = 10; // ajuste conforme seu mapa
+    mapContainer.innerHTML = '';
+
+    for (let r = 0; r < rows; r++) {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'map-row';
+
+        for (let c = 1; c <= cols; c++) {
+            const cellDiv = document.createElement('div');
+            cellDiv.className = 'map-cell';
+            const posNum = 101 + c + r * cols; // exemplo de numeração
+            ['A', 'B', 'C'].forEach(suffix => {
+                const subCell = document.createElement('div');
+                subCell.id = `${posNum}${suffix}`;
+                subCell.className = 'sub-cell';
+                subCell.innerText = ''; // vazio inicialmente
+                cellDiv.appendChild(subCell);
+            });
+            rowDiv.appendChild(cellDiv);
+        }
+        mapContainer.appendChild(rowDiv);
     }
-  }
 }
 
-function renderMap(){
-  const area=document.getElementById('mapArea');
-  if(!area) return;
-  area.innerHTML='';
-  for(const t of tpsConfig){
-    const header=document.createElement('div');
-    header.className='tps-header';
-    header.textContent=t.name+' — '+t.start+' A '+t.end;
-    area.appendChild(header);
-    for(let p=t.start;p<=t.end;p++){
-      const row=document.createElement('div');
-      row.className='position-row';
-      const colPos=document.createElement('div');
-      colPos.innerHTML='<strong>'+p+'</strong><div class="small">sub-posições: 3</div>';
-      const colInfo=document.createElement('div');
-      const subwrap=document.createElement('div');
-      subwrap.className='subcells';
-      positions[p].subs.forEach((s,i)=>{
-        const sc=document.createElement('div');
-        sc.className='subcell';
-        sc.dataset.pos=p;
-        sc.dataset.sub=i;
-        sc.textContent=s.occupied?s.flight.airline:'livre';
-        sc.addEventListener('click',()=>{selectPosition(p,i);});
-        subwrap.appendChild(sc);
-      });
-      colInfo.appendChild(subwrap);
-      row.appendChild(colPos);
-      row.appendChild(colInfo);
-      row.appendChild(document.createElement('div'));
-      row.appendChild(document.createElement('div'));
-      area.appendChild(row);
-    }
-  }
-}
-
-function selectPosition(pos,sub){
-  document.getElementById('selectedDetails').innerHTML='Posição: <b>'+pos+'</b> — sub: '+(sub+1);
-}
-
-// --- Inicializar TPS ---
-document.getElementById('applyTps').addEventListener('click',()=>{
-  const txt=document.getElementById('tpsConfig').value.trim();
-  tpsConfig=txt.split('\n').map(l=>{
-    const p=l.split(',').map(x=>x.trim());
-    return {name:p[0], start:parseInt(p[1]), end:parseInt(p[2])};
-  });
-  buildPositions();
-  renderMap();
+document.addEventListener('DOMContentLoaded', () => {
+    renderMap();
 });
-document.getElementById('applyTps').click();
