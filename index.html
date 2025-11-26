@@ -44,6 +44,7 @@
       <div style="display:flex;gap:8px;align-items:center">
         <label class="small">Arquivo Excel (timetable):</label>
         <input id="fileInput" type="file" accept=".xls,.xlsx" />
+        <button id="loadFileBtn" class="btn">Carregar</button>
       </div>
       <div style="margin-top:8px;">
         <label class="small">Ou URL do .xlsx (CORS permitido):</label>
@@ -284,20 +285,24 @@ TPS3,301,350</textarea>
 
     function checkForDueFlights(){
       const now = new Date();
-      const nowKey = now.getFullYear()+'-'+now.getMonth()+'-'+now.getDate()+' '+pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
-      for(const row of timetable){
-        const dt = parseTimeToTodayHHMM(row.timeStr);
+      // trigger arrivals from LANDINGS
+      for(const row of (window.timetableLand||[])){
+        const dt = parseTimeToTodayHHMM(row.timeStr || row['Time'] || row['Hora'] || row['Horario']);
         if(!dt) continue;
-        // compare exact seconds; trigger when equal to current HH:MM:ss
+        // trigger on the 0th second of the minute
         if(dt.getHours()===now.getHours() && dt.getMinutes()===now.getMinutes() && now.getSeconds()===0){
-          const key = row.airline+'|'+row.flight+'|'+row.timeStr;
+          const key = (row.airline||row['Airline']||'')+'|'+(row.flight||row['Flight']||'')+'|'+(row.timeStr||'');
           if(!lastTriggered.has(key)){
             lastTriggered.add(key);
-            // show modal only for pouso rows OR if type empty assume pouso
-            const t = (row.type||'').toString().toUpperCase();
-            if(t.includes('POUSO') || t==='' || /arriv/i.test(row.type)){
-              showArrivalModal(row);
-            }
+            // arrival detected
+            showArrivalModal(row);
+          }
+        }
+      }
+      // Note: departures are scheduled via prepareDepartureForAircraft -> scheduleDeparture using timetableTake
+      // cleanup logic to avoid memory growth
+      if((window.timetableLand||[]).length===0) lastTriggered.clear();
+    }
             // if it's a departure scheduled exactly now, can trigger departure handling similarly
           }
         }
@@ -378,19 +383,31 @@ TPS3,301,350</textarea>
     }
 
     function prepareDepartureForAircraft(pos,sub,flight){
-      // find in timetable departures matching same airline AND same aircraft type and departure between +3h and +24h from landing
+      // find in timetableTake departures matching same airline AND same aircraft type between +3h and +24h from landing
       const landingDt = parseTimeToTodayHHMM(flight.scheduled) || new Date();
       const minDt = new Date(landingDt.getTime() + 3*3600*1000);
       const maxDt = new Date(landingDt.getTime() + 24*3600*1000);
-      const candidates = timetable.filter(r=>{
+      const list = window.timetableTake || [];
+      const candidates = list.filter(r=>{
         if(!r) return false;
-        const rt = (r.type||'').toString().toUpperCase(); if(!(rt.includes('DECOL')||/dep/i.test(r.type))) return false; // must be departure
-        if((r.airline||'').toString().toLowerCase() !== (flight.airline||'').toString().toLowerCase()) return false;
-        if((r.aircraft||'').toString().toLowerCase() !== (flight.aircraft||'').toString().toLowerCase()) return false;
-        const rDt = parseTimeToTodayHHMM(r.timeStr); if(!rDt) return false;
-        // handle crossing midnight by allowing same-day only for simplicity
+        // try to extract fields flexibly
+        const rAir = (r.airline||r['Airline']||'').toString().toLowerCase();
+        const rAc = (r.aircraft||r['Aircraft']||'').toString().toLowerCase();
+        if(rAir === '' || rAc === '') return false;
+        if(rAir !== (flight.airline||'').toString().toLowerCase()) return false;
+        if(rAc !== (flight.aircraft||'').toString().toLowerCase()) return false;
+        const rDt = parseTimeToTodayHHMM(r.timeStr || r['Time'] || r['Hora'] || r['Horario']); if(!rDt) return false;
         return rDt >= minDt && rDt <= maxDt;
       });
+      if(candidates.length===0) return alert('Nenhuma decolagem compatível encontrada (mesma airline & aircraft entre +3h e +24h)');
+      const sel = prompt('Selecione index do voo para decolagem:
+'+candidates.map((c,i)=>i+' - '+(c.airline||c['Airline']||'')+' '+(c.flight||c['Flight']||'')+' '+(c.timeStr||c['Time']||'')).join('
+'));
+      const idx = parseInt(sel);
+      if(isNaN(idx) || idx<0 || idx>=candidates.length) return alert('Seleção inválida');
+      const chosen = candidates[idx];
+      scheduleDeparture(pos,sub,flight,chosen);
+    });
       // show selection UI
       if(candidates.length===0) return alert('Nenhuma decolagem compatível encontrada (mesma airline & aircraft entre +3h e +24h)');
       const sel = prompt('Selecione index do voo para decolagem:\n'+candidates.map((c,i)=>i+' - '+c.airline+' '+c.flight+' '+c.timeStr).join('\n'));
@@ -402,23 +419,24 @@ TPS3,301,350</textarea>
     }
 
     function scheduleDeparture(pos,sub,flight,chosen){
-      const depDt = parseTimeToTodayHHMM(chosen.timeStr);
+      const timeField = chosen.timeStr || chosen['Time'] || chosen['Hora'] || chosen['Horario'];
+      const depDt = parseTimeToTodayHHMM(timeField);
       if(!depDt) return alert('Horario de decolagem inválido');
-      // create an action that will fire when time reached
-      const id = 'dep_'+Date.now();
       const now = new Date(); const msUntil = depDt - now;
       if(msUntil <= 0) return alert('Horario já passou ou é agora. Você pode forçar decolagem manualmente.');
-      // show message on departures list when triggered
       setTimeout(()=>{
         // remove from map
         positions[pos].subs[sub].occupied = false; positions[pos].subs[sub].flight = null; renderMap();
         // add to departures panel with 2 minute counter
         const container = document.getElementById('departures');
         const card = document.createElement('div'); card.className='flight-card';
-        card.innerHTML = '<div><strong>'+flight.airline+' '+(flight.flight||'')+'</strong> — pronto para decolar ('+chosen.timeStr+')</div>';
+        card.innerHTML = '<div><strong>'+flight.airline+' '+(flight.flight||'')+'</strong> — pronto para decolar ('+ (timeField) + ')</div>';
         const label = document.createElement('div'); label.className='small'; label.textContent='Countdown: 02:00';
         card.appendChild(label); container.appendChild(card);
         let seconds = 120; const timer = setInterval(()=>{ seconds--; label.textContent = 'Countdown: '+formatSec(seconds); if(seconds<=0){ clearInterval(timer); card.remove(); } },1000);
+      }, msUntil);
+      alert('Decolagem agendada para '+timeField+' (vai disparar automaticamente)');
+    } },1000);
       }, msUntil);
       alert('Decolagem agendada para '+chosen.timeStr+' (vai disparar automaticamente)');
     }
@@ -450,5 +468,35 @@ TPS3,301,350</textarea>
     });
 
   </script>
+<script>
+// --- Carregamento via botão de arquivo ---
+// Agora detecta abas LANDINGS e TAKINGS OFF
+const fileInput = document.getElementById('fileInput');
+const loadFileBtn = document.getElementById('loadFileBtn');
+
+loadFileBtn.addEventListener('click', async () => {
+  const file = fileInput.files[0];
+  if (!file) return alert('Selecione um arquivo primeiro.');
+
+  const data = await file.arrayBuffer();
+  const workbook = XLSX.read(data);
+
+  const sheetLand = workbook.Sheets['LANDINGS'];
+  const sheetTake = workbook.Sheets['TAKINGS OFF'];
+
+  if (!sheetLand || !sheetTake) {
+    alert('As abas LANDINGS e TAKINGS OFF precisam existir no arquivo.');
+    return;
+  }
+
+  window.timetableLand = XLSX.utils.sheet_to_json(sheetLand, { defval: '' });
+  window.timetableTake = XLSX.utils.sheet_to_json(sheetTake, { defval: '' });
+
+  console.log('LANDINGS:', window.timetableLand.slice(0,5));
+  console.log('TAKINGS OFF:', window.timetableTake.slice(0,5));
+
+  alert('Timetable LANDINGS e TAKINGS OFF carregado com sucesso!');
+});
+</script>
 </body>
 </html>
