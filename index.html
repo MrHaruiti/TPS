@@ -1,454 +1,99 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Painel Aeroporto — Mapa de Posições (Tabela)</title>
-  <style>
-    :root{font-family:Inter,system-ui,Arial,Helvetica,sans-serif;color:#111}
-    body{margin:0;padding:18px;background:#f5f7fb}
-    header{display:flex;gap:16px;align-items:center}
-    h1{margin:0;font-size:20px}
-    .controls{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
-    .card{background:#fff;border-radius:8px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-    input,select,button{font-size:14px;padding:6px;border-radius:6px;border:1px solid #d9e0ea}
-    .layout{display:grid;grid-template-columns:300px 1fr 340px;gap:12px;margin-top:14px}
-    .left,.center,.right{min-height:400px}
-    .clock{font-weight:700;font-size:18px}
-    /* map table */
-    .map{width:100%;border-collapse:collapse}
-    .tps-header{background:#e8eef7;padding:6px;border-radius:6px;margin-bottom:6px}
-    .position-row{background:#fff;margin-bottom:4px;display:grid;grid-template-columns:120px 1fr 1fr 160px;align-items:center;padding:8px;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-    .subcells{display:flex;gap:6px}
-    .subcell{flex:1;padding:6px;border-radius:6px;border:1px dashed #dfe9f4;text-align:center}
-    .occupied{background:#fde8e8;border:1px solid #f5b6b6}
-    .incoming-list,.departure-list{display:flex;flex-direction:column;gap:8px}
-    .flight-card{background:#fff;padding:8px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
-    .btn{cursor:pointer}
-    .modal{position:fixed;left:0;top:0;right:0;bottom:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.4)}
-    .modal .box{width:420px;background:#fff;padding:16px;border-radius:8px}
-    label{display:block;font-size:13px;margin-top:8px}
-    .small{font-size:12px;color:#666}
-    footer{margin-top:18px;font-size:12px;color:#666}
-    .flex{display:flex;gap:8px;align-items:center}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Painel Aeroporto — Mapa de Posições (Tabela)</title>
+<link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>
-    <h1>Painel Aeroporto — Mapa em Tabela</h1>
-    <div class="clock card" id="clock">--:--:--</div>
-  </header>
+<header>
+  <h1>Painel Aeroporto — Mapa em Tabela</h1>
+  <div class="clock card" id="clock">--:--:--</div>
+</header>
 
-  <div class="controls">
-    <div class="card">
-      <div style="display:flex;gap:8px;align-items:center">
-        <label class="small">Arquivo Excel (timetable):</label>
-        <input id="fileInput" type="file" accept=".xls,.xlsx" />
-      </div>
-      <div style="margin-top:8px;">
-        <label class="small">Ou URL do .xlsx (CORS permitido):</label>
-        <input id="urlInput" placeholder="https://.../timetable.xlsx" style="width:360px" />
-        <button id="loadUrlBtn" class="btn">Carregar</button>
-      </div>
-      <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
-        <label class="small">Auto-refresh:</label>
-        <select id="refreshInterval">
-          <option value="1">1s</option>
-          <option value="5">5s</option>
-          <option value="30">30s</option>
-          <option value="60">60s</option>
-        </select>
-      </div>
+<div class="controls">
+  <div class="card">
+    <div style="display:flex;gap:8px;align-items:center">
+      <label class="small">Arquivo Excel (timetable):</label>
+      <input id="fileInput" type="file" accept=".xls,.xlsx" />
     </div>
+    <div style="margin-top:8px;">
+      <label class="small">Ou URL do .xlsx (CORS permitido):</label>
+      <input id="urlInput" placeholder="https://.../timetable.xlsx" style="width:360px" />
+      <button id="loadUrlBtn" class="btn">Carregar</button>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+      <label class="small">Auto-refresh:</label>
+      <select id="refreshInterval">
+        <option value="1">1s</option>
+        <option value="5">5s</option>
+        <option value="30">30s</option>
+        <option value="60">60s</option>
+      </select>
+    </div>
+  </div>
 
-    <div class="card">
-      <label class="small">Configuração TPS (padrão: TPS1 101-150, TPS2 201-250)</label>
-      <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
-        <textarea id="tpsConfig" style="width:520px;height:70px;font-family:monospace">TPS1,101,150
-TPS2,201,250
-TPS3,301,350</textarea>
-      </div>
+  <div class="card">
+    <label class="small">Configuração TPS (padrão: TPS1 101-150, TPS2 201-250)</label>
+    <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
+      <textarea id="tpsConfig" style="width:520px;height:70px;font-family:monospace">TPS1,101,150 TPS2,201,250 TPS3,301,350</textarea>
+    </div>
+    <div style="margin-top:8px">
+      <button id="applyTps" class="btn">Aplicar configuração TPS</button>
+    </div>
+    <div class="small" style="margin-top:8px">Formato por linha: NOME,INICIO,FIM — cada posição terá 3 sub-posições</div>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="left card">
+    <h3>Fila / Painel</h3>
+    <div style="margin-top:8px">
+      <strong>Voos chegando (em pop-up e contadores)</strong>
+      <div id="incoming" class="incoming-list" style="margin-top:8px"></div>
+    </div>
+    <div style="margin-top:12px">
+      <strong>Voos decolagens (contadores)</strong>
+      <div id="departures" class="departure-list" style="margin-top:8px"></div>
+    </div>
+    <div style="margin-top:12px">
+      <button id="openManualAdd" class="btn">Adicionar voo manual (charter)</button>
+    </div>
+  </div>
+
+  <div class="center card">
+    <h3>MAPA (Tabela) — clique numa sub-posição para selecionar</h3>
+    <div id="mapArea"></div>
+  </div>
+
+  <div class="right card">
+    <h3>Detalhes / Ações</h3>
+    <div id="selectedDetails">Nenhuma posição selecionada</div>
+    <div style="margin-top:12px">
+      <strong>Filtrar Timetable</strong>
       <div style="margin-top:8px">
-        <button id="applyTps" class="btn">Aplicar configuração TPS</button>
-      </div>
-      <div class="small" style="margin-top:8px">Formato por linha: NOME,INICIO,FIM  — cada posição terá 3 sub-posições</div>
-    </div>
-  </div>
-
-  <div class="layout">
-    <div class="left card">
-      <h3>Fila / Painel</h3>
-      <div style="margin-top:8px">
-        <strong>Voos chegando (em pop-up e contadores)</strong>
-        <div id="incoming" class="incoming-list" style="margin-top:8px"></div>
-      </div>
-
-      <div style="margin-top:12px">
-        <strong>Voos decolagens (contadores)</strong>
-        <div id="departures" class="departure-list" style="margin-top:8px"></div>
-      </div>
-
-      <div style="margin-top:12px">
-        <button id="openManualAdd" class="btn">Adicionar voo manual (charter)</button>
-      </div>
-    </div>
-
-    <div class="center card">
-      <h3>MAPA (Tabela) — clique numa sub-posição para selecionar</h3>
-      <div id="mapArea"></div>
-    </div>
-
-    <div class="right card">
-      <h3>Detalhes / Ações</h3>
-      <div id="selectedDetails">Nenhuma posição selecionada</div>
-      <div style="margin-top:12px">
-        <strong>Filtrar Timetable</strong>
-        <div style="margin-top:8px">
-          <input id="filterAirline" placeholder="Airline (opcional)" />
-          <input id="filterAircraft" placeholder="Aircraft (ex: A388)" />
-          <button id="applyFilter">Aplicar</button>
-        </div>
+        <input id="filterAirline" placeholder="Airline (opcional)" />
+        <input id="filterAircraft" placeholder="Aircraft (ex: A388)" />
+        <button id="applyFilter">Aplicar</button>
       </div>
     </div>
   </div>
+</div>
 
-  <div class="modal" id="modal">
-    <div class="box">
-      <h3 id="modalTitle">Chegou um voo</h3>
-      <div id="modalInfo"></div>
-      <label>Matricula (registro) temporária</label>
-      <input id="modalReg" placeholder="Ex: A6-EOF" />
-      <label>Posição (numero) — ex: 101</label>
-      <input id="modalPos" placeholder="101" />
-      <div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px">
-        <button id="modalCancel" class="btn">Cancelar</button>
-        <button id="modalOk" class="btn">OK</button>
-      </div>
-    </div>
-  </div>
+<!-- Modais -->
+<div class="modal" id="modal">
+  <div class="box" id="arrivalModalBox"></div>
+</div>
+<div class="modal" id="manualModal">
+  <div class="box" id="manualModalBox"></div>
+</div>
 
-  <div class="modal" id="manualModal">
-    <div class="box">
-      <h3>Adicionar Voo Manual</h3>
-      <label>Airline</label>
-      <input id="mAirline" />
-      <label>Flight/ID</label>
-      <input id="mFlight" />
-      <label>Origem / Destino</label>
-      <input id="mRoute" />
-      <label>Horário (HH:MM)</label>
-      <input id="mTime" />
-      <label>Tipo (Pouso/Decolagem)</label>
-      <select id="mType"><option>POUSO</option><option>DECOLAGEM</option></select>
-      <label>Aircraft (ex: A388)</label>
-      <input id="mAircraft" />
-      <div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px">
-        <button id="manualCancel">Cancelar</button>
-        <button id="manualAdd">Adicionar</button>
-      </div>
-    </div>
-  </div>
+<footer>
+  Arquivo Excel carregado: <span id="fileName">nenhum</span>. O sistema verifica o timetable e gera pop-ups no horário exato.
+</footer>
 
-  <footer>Arquivo Excel carregado: <span id="fileName">nenhum</span>. O sistema verifica o timetable e gera pop-ups no horário exato (comparação HH:MM:ss).</footer>
-
-  <!-- Dependência para ler Excel no navegador -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
-  <script>
-    /********************
-      Estrutura de dados (em memória)
-    ********************/
-    let timetable = []; // array de objetos: {airline, flight, route, timeStr, hhmm, type, aircraft, rawRow}
-    let tpsConfig = []; // array de {name,start,end}
-    let positions = {}; // mapping posNumber -> {subs:[{occupied:false,flight:null}], tps:'TPS1'}
-    let refreshIntervalSec = 1;
-    let timers = [];
-
-    // util: format clock
-    function pad(n){return n<10 ? '0'+n : ''+n}
-    function nowStr(){const d=new Date(); return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds())}
-
-    // Clock update every second
-    function updateClock(){document.getElementById('clock').textContent = nowStr();}
-    setInterval(updateClock,1000); updateClock();
-
-    // --- TPS config parsing and map building ---
-    document.getElementById('applyTps').addEventListener('click',()=>{
-      const txt = document.getElementById('tpsConfig').value.trim();
-      const lines = txt.split('\n').map(l=>l.trim()).filter(Boolean);
-      tpsConfig = [];
-      for(const l of lines){
-        const parts = l.split(',').map(p=>p.trim());
-        if(parts.length>=3){ tpsConfig.push({name:parts[0],start:parseInt(parts[1]),end:parseInt(parts[2])}); }
-      }
-      buildPositions();
-      renderMap();
-    });
-
-    function buildPositions(){ positions = {}; for(const t of tpsConfig){ for(let p=t.start;p<=t.end;p++){ positions[p] = {tps:t.name,subs:[{occupied:false,flight:null},{occupied:false,flight:null},{occupied:false,flight:null}]}; } } }
-
-    function renderMap(){ const area = document.getElementById('mapArea'); area.innerHTML='';
-      for(const t of tpsConfig){
-        const header = document.createElement('div'); header.className='tps-header'; header.textContent = t.name + ' — ' + t.start + ' A ' + t.end; area.appendChild(header);
-        for(let p=t.start;p<=t.end;p++){
-          const row = document.createElement('div'); row.className='position-row';
-          const colPos = document.createElement('div'); colPos.innerHTML = '<strong>'+p+'</strong><div class="small">sub-posições: 3</div>';
-          const colInfo = document.createElement('div');
-          // show subcells
-          const subwrap = document.createElement('div'); subwrap.className='subcells';
-          positions[p].subs.forEach((s,i)=>{
-            const sc = document.createElement('div'); sc.className='subcell'; sc.dataset.pos = p; sc.dataset.sub = i;
-            if(s.occupied){ sc.classList.add('occupied'); sc.textContent = s.flight.airline+' '+s.flight.reg+'\n'+s.flight.aircraft; }
-            else sc.textContent = 'livre';
-            sc.addEventListener('click',()=>{ selectPosition(p,i); });
-            subwrap.appendChild(sc);
-          });
-          colInfo.appendChild(subwrap);
-
-          const colAircraft = document.createElement('div'); colAircraft.className='small'; colAircraft.textContent = '—';
-          const colEvent = document.createElement('div'); colEvent.className='small'; colEvent.textContent = '—';
-
-          row.appendChild(colPos); row.appendChild(colInfo); row.appendChild(colAircraft); row.appendChild(colEvent);
-          area.appendChild(row);
-        }
-      }
-    }
-
-    function selectPosition(pos,sub){ document.getElementById('selectedDetails').innerHTML = 'Posição: <b>'+pos+'</b> — sub: '+(sub+1)+"<br/>"+JSON.stringify(positions[pos].subs[sub].flight||'livre'); }
-
-    // initial TPS apply
-    document.getElementById('applyTps').click();
-
-    // --- Excel loading ---
-    document.getElementById('fileInput').addEventListener('change', (ev)=>{
-      const f = ev.target.files[0]; if(!f) return; document.getElementById('fileName').textContent = f.name;
-      const reader = new FileReader();
-      reader.onload = function(e){ const data = new Uint8Array(e.target.result); const wb = XLSX.read(data,{type:'array'}); parseWorkbook(wb); }
-      reader.readAsArrayBuffer(f);
-    });
-
-    document.getElementById('loadUrlBtn').addEventListener('click', async ()=>{
-      const url = document.getElementById('urlInput').value.trim(); if(!url) return alert('Informe uma URL');
-      try{
-        const r = await fetch(url); if(!r.ok) throw new Error('HTTP '+r.status);
-        const ab = await r.arrayBuffer(); const wb = XLSX.read(new Uint8Array(ab),{type:'array'}); parseWorkbook(wb);
-        document.getElementById('fileName').textContent = url;
-      }catch(err){ alert('Erro ao carregar: '+err.message); }
-    });
-
-    function parseWorkbook(wb){
-      // take first sheet
-      const sname = wb.SheetNames[0]; const sheet = wb.Sheets[sname]; const json = XLSX.utils.sheet_to_json(sheet,{defval:''});
-      timetable = json.map((row,idx)=>{
-        // try to detect fields by header
-        const keys = Object.keys(row);
-        const lower = k=>k.toString().toLowerCase();
-        const get = (cands)=>{ for(const c of cands){ const found = keys.find(k=>lower(k).includes(lower(c))); if(found) return row[found]; } return ''; };
-        const airline = get(['airline','companhia','companhia aerea','carrier','aerolinea']) || get(['0']) || '';
-        const flight = get(['flight','voo','flightno','flight number','numero']) || '';
-        const route = get(['route','origin','origem','from','to','destino','destination']) || '';
-        const timeStr = (get(['time','hora','horario','scheduled','scheduled time','schedule'])||'').toString();
-        const type = (get(['type','event','acao','acao','evento'])||'').toString().toUpperCase();
-        const aircraft = (get(['aircraft','ac','aeronave','tipo'])||'').toString();
-        // normalize type: look for keywords
-        let normType = '';
-        if(/pouso|arrival|arriv|arr/i.test(type)) normType='POUSO';
-        else if(/decol|dep|depart|departu/i.test(type)) normType='DECOLAGEM';
-        // If no type, try infer if there's a column 'from' or 'origin' vs 'destination' - skip inference here
-        return {airline:airline,flight:flight,route:route,timeStr:timeStr,type:normType||type,aircraft:aircraft,rawRow:row};
-      });
-      console.log('Timetable rows:',timetable.length);
-      // Save original data in localStorage optionally
-      localStorage.setItem('timetable_preview', JSON.stringify(timetable.slice(0,200)));
-    }
-
-    // --- Polling and event triggering ---
-    let lastTriggered = new Set(); // keys to avoid duplicate triggers per second
-    function setRefreshInterval(){ refreshIntervalSec = parseInt(document.getElementById('refreshInterval').value) || 1; }
-    document.getElementById('refreshInterval').addEventListener('change', setRefreshInterval); setRefreshInterval();
-
-    setInterval(async ()=>{
-      // optionally reload from URL each interval (if URL present)
-      const url = document.getElementById('urlInput').value.trim(); if(url){ try{ const r = await fetch(url); if(r.ok){ const ab = await r.arrayBuffer(); const wb = XLSX.read(new Uint8Array(ab),{type:'array'}); parseWorkbook(wb); } }catch(e){ /* ignore fetch errors */ } }
-
-      checkForDueFlights();
-    }, refreshIntervalSec*1000);
-
-    function parseTimeToTodayHHMM(timeStr){
-      // accepts HH:MM or H:MM or HHMM
-      if(!timeStr) return null;
-      const m = timeStr.toString().match(/(\d{1,2})[:.]?(\d{2})/);
-      if(!m) return null;
-      const d = new Date(); d.setHours(parseInt(m[1]),parseInt(m[2]),0,0); return d;
-    }
-
-    function checkForDueFlights(){
-      const now = new Date();
-      const nowKey = now.getFullYear()+'-'+now.getMonth()+'-'+now.getDate()+' '+pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
-      for(const row of timetable){
-        const dt = parseTimeToTodayHHMM(row.timeStr);
-        if(!dt) continue;
-        // compare exact seconds; trigger when equal to current HH:MM:ss
-        if(dt.getHours()===now.getHours() && dt.getMinutes()===now.getMinutes() && now.getSeconds()===0){
-          const key = row.airline+'|'+row.flight+'|'+row.timeStr;
-          if(!lastTriggered.has(key)){
-            lastTriggered.add(key);
-            // show modal only for pouso rows OR if type empty assume pouso
-            const t = (row.type||'').toString().toUpperCase();
-            if(t.includes('POUSO') || t==='' || /arriv/i.test(row.type)){
-              showArrivalModal(row);
-            }
-            // if it's a departure scheduled exactly now, can trigger departure handling similarly
-          }
-        }
-      }
-      // cleanup lastTriggered daily
-      if(Object.keys(timetable).length===0) lastTriggered.clear();
-    }
-
-    // --- Modal logic ---
-    function showArrivalModal(row){
-      const modal = document.getElementById('modal'); modal.style.display='flex';
-      document.getElementById('modalTitle').textContent = 'Voo programado: '+(row.airline||'')+' '+(row.flight||'');
-      document.getElementById('modalInfo').innerHTML = '<div class="small">Horario previsto: '+row.timeStr+'<br/>Aircraft: '+(row.aircraft||'')+'<br/>Rota: '+(row.route||'')+'</div>';
-      document.getElementById('modalReg').value=''; document.getElementById('modalPos').value='';
-      // attach handlers
-      document.getElementById('modalOk').onclick = ()=>{
-        const reg = document.getElementById('modalReg').value.trim(); const pos = document.getElementById('modalPos').value.trim();
-        acceptArrival(row,reg,pos);
-        modal.style.display='none';
-      }
-      document.getElementById('modalCancel').onclick = ()=>{ modal.style.display='none'; }
-    }
-
-    function acceptArrival(row,reg,pos){
-      // create flight object
-      const flight = {airline:row.airline,flight:row.flight,route:row.route,scheduled:row.timeStr,aircraft:row.aircraft,reg:reg||'',assignedPos:pos||'',state:'landing'};
-      // push to incoming list with 2 minute counter
-      addIncomingFlight(flight);
-    }
-
-    function addIncomingFlight(flight){
-      const id = 'inc_'+Date.now();
-      const container = document.getElementById('incoming');
-      const card = document.createElement('div'); card.className='flight-card'; card.id = id;
-      card.innerHTML = '<div><strong>'+flight.airline+' '+(flight.flight||'')+'</strong> — '+flight.aircraft+'<div class="small">previsto: '+flight.scheduled+'</div></div>';
-      const controls = document.createElement('div'); controls.className='flex';
-      const label = document.createElement('div'); label.className='small'; label.textContent = 'Countdown: 02:00'; controls.appendChild(label);
-      const okBtn = document.createElement('button'); okBtn.textContent='Forçar parking'; okBtn.className='btn'; okBtn.onclick = ()=>{ moveToMapAfterCountdown(flight); clearInterval(flight._timer); card.remove(); };
-      controls.appendChild(okBtn);
-      card.appendChild(controls);
-      container.appendChild(card);
-
-      // start 2 minute counter
-      let seconds = 120;
-      label.textContent = 'Countdown: '+formatSec(seconds);
-      flight._timer = setInterval(()=>{
-        seconds--; label.textContent = 'Countdown: '+formatSec(seconds);
-        if(seconds<=0){ clearInterval(flight._timer); card.remove(); moveToMapAfterCountdown(flight); }
-      },1000);
-    }
-
-    function formatSec(s){ const m = Math.floor(s/60); const sec = s%60; return pad(m)+':'+pad(sec); }
-
-    function moveToMapAfterCountdown(flight){
-      // determine intended pos
-      let posNum = parseInt(flight.assignedPos) || null;
-      if(!posNum){ // if not specified, pick first free pos
-        for(const p in positions){ const pos = positions[p]; const freeIdx = pos.subs.findIndex(x=>!x.occupied); if(freeIdx>=0){ posNum = parseInt(p); flight.assignedPos = p; break; } }
-      }
-      if(!posNum){ alert('Sem posicoes livres!'); return; }
-      // occupy first free sub or all subs if user specified base pos and wanted all
-      const posObj = positions[posNum]; const freeIdx = posObj.subs.findIndex(x=>!x.occupied);
-      if(freeIdx<0){ alert('Sub-posicoes cheias em '+posNum); return; }
-      posObj.subs[freeIdx].occupied = true; posObj.subs[freeIdx].flight = {...flight,parkedAt:{pos:posNum,sub:freeIdx}};
-      renderMap();
-      // add action buttons for that parked flight in the map details
-      // also save to a short-term 'onGround' registry
-      addParkedFlightUI(posNum, freeIdx, posObj.subs[freeIdx].flight);
-    }
-
-    function addParkedFlightUI(pos,sub,flight){ const container = document.getElementById('selectedDetails'); container.innerHTML = 'Posição '+pos+' sub '+(sub+1)+' — '+flight.airline+' '+(flight.reg||'')+'<div style="margin-top:8px"><button id="btnFinish_'+pos+'_'+sub+'">Finalizar desembarque -> Remoto</button> <button id="btnPrepareDep_'+pos+'_'+sub+'">Programar decolagem</button></div>';
-      document.getElementById('btnFinish_'+pos+'_'+sub).onclick = ()=>{ // move to remote/maintenance: free pos
-        positions[pos].subs[sub].occupied = false; positions[pos].subs[sub].flight = null; renderMap(); document.getElementById('selectedDetails').innerHTML='Nenhuma posição selecionada';
-      };
-      document.getElementById('btnPrepareDep_'+pos+'_'+sub).onclick = ()=>{ // find candidate departures and let user pick
-        prepareDepartureForAircraft(pos,sub,flight);
-      };
-    }
-
-    function prepareDepartureForAircraft(pos,sub,flight){
-      // find in timetable departures matching same airline AND same aircraft type and departure between +3h and +24h from landing
-      const landingDt = parseTimeToTodayHHMM(flight.scheduled) || new Date();
-      const minDt = new Date(landingDt.getTime() + 3*3600*1000);
-      const maxDt = new Date(landingDt.getTime() + 24*3600*1000);
-      const candidates = timetable.filter(r=>{
-        if(!r) return false;
-        const rt = (r.type||'').toString().toUpperCase(); if(!(rt.includes('DECOL')||/dep/i.test(r.type))) return false; // must be departure
-        if((r.airline||'').toString().toLowerCase() !== (flight.airline||'').toString().toLowerCase()) return false;
-        if((r.aircraft||'').toString().toLowerCase() !== (flight.aircraft||'').toString().toLowerCase()) return false;
-        const rDt = parseTimeToTodayHHMM(r.timeStr); if(!rDt) return false;
-        // handle crossing midnight by allowing same-day only for simplicity
-        return rDt >= minDt && rDt <= maxDt;
-      });
-      // show selection UI
-      if(candidates.length===0) return alert('Nenhuma decolagem compatível encontrada (mesma airline & aircraft entre +3h e +24h)');
-      const sel = prompt('Selecione index do voo para decolagem:\n'+candidates.map((c,i)=>i+' - '+c.airline+' '+c.flight+' '+c.timeStr).join('\n'));
-      const idx = parseInt(sel);
-      if(isNaN(idx) || idx<0 || idx>=candidates.length) return alert('Seleção inválida');
-      const chosen = candidates[idx];
-      // schedule departure: when time reaches, move to departures panel and countdown 2min then free slot
-      scheduleDeparture(pos,sub,flight,chosen);
-    }
-
-    function scheduleDeparture(pos,sub,flight,chosen){
-      const depDt = parseTimeToTodayHHMM(chosen.timeStr);
-      if(!depDt) return alert('Horario de decolagem inválido');
-      // create an action that will fire when time reached
-      const id = 'dep_'+Date.now();
-      const now = new Date(); const msUntil = depDt - now;
-      if(msUntil <= 0) return alert('Horario já passou ou é agora. Você pode forçar decolagem manualmente.');
-      // show message on departures list when triggered
-      setTimeout(()=>{
-        // remove from map
-        positions[pos].subs[sub].occupied = false; positions[pos].subs[sub].flight = null; renderMap();
-        // add to departures panel with 2 minute counter
-        const container = document.getElementById('departures');
-        const card = document.createElement('div'); card.className='flight-card';
-        card.innerHTML = '<div><strong>'+flight.airline+' '+(flight.flight||'')+'</strong> — pronto para decolar ('+chosen.timeStr+')</div>';
-        const label = document.createElement('div'); label.className='small'; label.textContent='Countdown: 02:00';
-        card.appendChild(label); container.appendChild(card);
-        let seconds = 120; const timer = setInterval(()=>{ seconds--; label.textContent = 'Countdown: '+formatSec(seconds); if(seconds<=0){ clearInterval(timer); card.remove(); } },1000);
-      }, msUntil);
-      alert('Decolagem agendada para '+chosen.timeStr+' (vai disparar automaticamente)');
-    }
-
-    // manual add modal
-    document.getElementById('openManualAdd').addEventListener('click',()=>{ document.getElementById('manualModal').style.display='flex'; });
-    document.getElementById('manualCancel').addEventListener('click',()=>{ document.getElementById('manualModal').style.display='none'; });
-    document.getElementById('manualAdd').addEventListener('click',()=>{
-      const f = {airline:document.getElementById('mAirline').value, flight:document.getElementById('mFlight').value, route:document.getElementById('mRoute').value, timeStr:document.getElementById('mTime').value, type:document.getElementById('mType').value, aircraft:document.getElementById('mAircraft').value};
-      timetable.push(f);
-      document.getElementById('manualModal').style.display='none';
-      alert('Voo adicionado ao timetable em memória.');
-    });
-
-    // helper to render map after initial load
-    renderMap();
-
-    // filter button (no heavy functionality but will show matches)
-    document.getElementById('applyFilter').addEventListener('click',()=>{
-      const al = document.getElementById('filterAirline').value.trim().toLowerCase(); const ac = document.getElementById('filterAircraft').value.trim().toLowerCase();
-      const filtered = timetable.filter(r=>{ if(al && !(r.airline||'').toLowerCase().includes(al)) return false; if(ac && !(r.aircraft||'').toLowerCase().includes(ac)) return false; return true; });
-      alert('Encontrados '+filtered.length+' rows (veja console)'); console.log(filtered.slice(0,200));
-    });
-
-    // simple persistence restore (try load sample)
-    window.addEventListener('load',()=>{
-      // try to load sample if any saved
-      const prev = localStorage.getItem('timetable_preview'); if(prev){ try{ console.log('Preview timetable loaded'); timetable = JSON.parse(prev); }catch(e){} }
-    });
-
-  </script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
